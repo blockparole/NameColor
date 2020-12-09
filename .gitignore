@@ -1,11 +1,9 @@
-# Java
-*.class
-*.jar
-hs_err_pid*
+# idea
+/*.iml
+/.idea/
 
-# Maven
-target/
+# maven
+/target/
 
-# IntelliJ
-.idea
-*.iml
+# test server
+/server/

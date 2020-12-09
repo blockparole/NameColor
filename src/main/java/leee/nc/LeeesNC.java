@@ -1,4 +1,4 @@
-package Leee.nc;
+package leee.nc;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
