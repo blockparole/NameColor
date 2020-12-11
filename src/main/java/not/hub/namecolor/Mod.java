@@ -116,13 +116,13 @@ public class Mod extends JavaPlugin implements Listener {
     private boolean changeNameColor(Player player, String modifiers, boolean notify) {
 
         if (modifiers.isEmpty()) {
-            player.sendMessage(ChatColor.RED + helpMessage);
+            player.sendMessage(helpMessage);
             return false;
         }
 
         player.setDisplayName(modifiers + player.getName() + ChatColor.RESET);
         if (notify) {
-            player.sendMessage(ChatColor.GOLD + "Name change to: " + ChatColor.RESET + player.getDisplayName());
+            player.sendMessage(ChatColor.GOLD + "Name changed to: " + ChatColor.RESET + player.getDisplayName());
         }
 
         if (config.saveModifiers) {
@@ -137,7 +137,7 @@ public class Mod extends JavaPlugin implements Listener {
 
         player.setDisplayName(player.getName());
         if (notify) {
-            player.sendMessage(ChatColor.GOLD + "Name color is back to default: " + player.getDisplayName());
+            player.sendMessage(ChatColor.GOLD + "Name reset to default: " + ChatColor.RESET + player.getDisplayName());
         }
 
         if (config.saveModifiers) {
