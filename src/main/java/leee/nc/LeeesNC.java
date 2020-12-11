@@ -113,7 +113,6 @@ public class LeeesNC extends JavaPlugin implements Listener {
     public void onJoin(PlayerJoinEvent event) {
 
         // if config.loadModifiers == false, event listeners will not be registered!
-
         String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
         if (modifiers != null && !modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
@@ -166,8 +165,14 @@ public class LeeesNC extends JavaPlugin implements Listener {
     }
 
     private String generateHelpMessage() {
-        // TODO
-        return "HELP MESSAGE";
+
+        return ChatColor.GOLD + "Please specify at least one valid modifier: "
+                + String.join(" ", modifierLookup
+                .entrySet()
+                .stream()
+                .map(entry -> entry.getValue() + entry.getKey() + ChatColor.RESET)
+                .collect(Collectors.toSet()));
+
     }
 
     class Config {
