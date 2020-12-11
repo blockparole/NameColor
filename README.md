@@ -1,14 +1,16 @@
-# LeeesNC
+# NameColor
 [![Download](https://img.shields.io/github/downloads/blockparole/LeeesNC/latest/total.svg?label=download%20latest&style=popout-square)](https://github.com/blockparole/LeeesNC/releases/latest)
 [![RepoSize](https://img.shields.io/github/languages/code-size/blockparole/LeeesNC.svg?label=repo%20size&style=popout-square)](https://github.com/blockparole/LeeesNC)
 [![HitCount](http://hits.dwyl.com/blockparole/LeeesNC.svg)](https://github.com/blockparole/LeeesNC)
 
-A Minecraft Plugin that changes a Players name color on their command.  
+Provides a name color self service command.
 
-![screenshot](https://i.imgur.com/JrDYh5H.png)
+![screenshot](screenshot.png)
 
-Usage: `/nc <color modifier + any amount of format modifiers>`  
-Example: `/nc ITALIC dark-red STRIKETHROUGH magic underline BOLD`  
+Usage:
+ - `/nc <modifiers>`
+ - `/nc italic dark red STRIKETHROUGH magic underline BOLD`
+ - `/nc reset`
 
 |Colors         |Format          |
 |---------------|----------------|
@@ -29,15 +31,16 @@ Example: `/nc ITALIC dark-red STRIKETHROUGH magic underline BOLD`
 |`WHITE`        |                |
 |`YELLOW`       |                |
 
-Player name format is saved in the config file via UUID:
+Player modifiers are referenced via UUID:
 ```
-command-needs-permission: false
-modifier-allowed-bold: true
-modifier-allowed-strikethrough: false
-modifier-allowed-underline: false
-modifier-allowed-italic: true
-modifier-allowed-magic: false
-9fb22b27-5fda-48ed-8a5a-ad6e1ff30d71: §2§l
-```======
-Spigot name colour plugin for anarchy servers
-Please join my discord http://discord.6b6t.org and ask me before you make your own version or if you need help
+permission-required-command: false
+permission-command: namecolor.command
+save-modifiers: true
+load-modifiers: true
+modifier-bold-allow: true
+modifier-italic-allow: true
+modifier-magic-allow: false
+modifier-strikethrough-allow: false
+modifier-underline-allow: false
+2a844c27-d1d2-32bd-88e9-c9fba95cf7a7: §m
+```

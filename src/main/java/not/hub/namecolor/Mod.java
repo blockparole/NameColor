@@ -19,6 +19,9 @@ public class Mod extends JavaPlugin implements Listener {
 
     private static final String DARK = "dark";
     private static final String LIGHT = "light";
+    private static final String RESET = "reset";
+    private static final String MAGIC = "magic";
+    private static final String OBFUSCATED = "obfuscated";
 
     private static final Map<String, Set<String>> colorPrefix = new HashMap<String, Set<String>>() {
         {
@@ -61,7 +64,7 @@ public class Mod extends JavaPlugin implements Listener {
         }
 
         String modifiers = config.loadModifiers(event.getPlayer().getUniqueId());
-        if (modifiers != null && !modifiers.isEmpty()) {
+        if (!modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
         }
 
@@ -76,7 +79,7 @@ public class Mod extends JavaPlugin implements Listener {
 
         Player player = (Player) sender;
 
-        if (config.permissionRequiredGlobal && config.permissionGlobal != null && !player.hasPermission(config.permissionGlobal)) {
+        if (config.permissionGlobalRequired && !player.hasPermission(config.permissionGlobal)) {
             player.sendMessage(ChatColor.RED + "You do not have sufficient permissions to use this command!");
             return false;
         }
@@ -85,7 +88,13 @@ public class Mod extends JavaPlugin implements Listener {
                 .stream(args)
                 .map(String::toLowerCase)
                 .map(s -> s.replaceAll("[^a-z]", "_"))
+                .map(s -> s.replaceAll(MAGIC, OBFUSCATED))
                 .collect(Collectors.toList());
+
+        if (params.contains(RESET) && (!config.permissionResetRequired || player.hasPermission(config.permissionReset))) {
+            resetNameColor(player, true);
+            return true;
+        }
 
         // convert "dark red" to "dark_red", "light purple" to "light_purple" etc.
         IntStream.range(0, params.size() - 1).forEach(i -> {
@@ -124,6 +133,19 @@ public class Mod extends JavaPlugin implements Listener {
 
     }
 
+    private void resetNameColor(Player player, boolean notify) {
+
+        player.setDisplayName(player.getName());
+        if (notify) {
+            player.sendMessage(ChatColor.GOLD + "Name color is back to default: " + player.getDisplayName());
+        }
+
+        if (config.saveModifiers) {
+            config.saveModifiers(player.getUniqueId(), null);
+        }
+
+    }
+
     private Map<String, String> generateModifierLookup() {
 
         Stream<ChatColor> colors = Arrays
@@ -158,10 +180,14 @@ public class Mod extends JavaPlugin implements Listener {
 
     class Config {
 
-        final boolean permissionRequiredGlobal;
         final String permissionGlobal;
+        final boolean permissionGlobalRequired;
+        final String permissionReset;
+        final boolean permissionResetRequired;
+
         final boolean saveModifiers;
         final boolean loadModifiers;
+
         final boolean modifierBoldAllow;
         final boolean modifierItalicAllow;
         final boolean modifierMagicAllow;
@@ -171,8 +197,11 @@ public class Mod extends JavaPlugin implements Listener {
         public Config() {
 
             // TODO: better names for path, default values and config fields
-            getConfig().addDefault("permission-required-global", false);
             getConfig().addDefault("permission-global", "namecolor.global");
+            getConfig().addDefault("permission-global-required", false);
+
+            getConfig().addDefault("permission-reset", "namecolor.reset");
+            getConfig().addDefault("permission-reset-required", false);
 
             // TODO: permission based formatter usage ->
             // (users can define permissions in config to allow certain formatters for certain permissions)
@@ -191,8 +220,11 @@ public class Mod extends JavaPlugin implements Listener {
             getConfig().options().copyDefaults(true);
             saveConfig();
 
-            this.permissionRequiredGlobal = getConfig().getBoolean("permission-required-global");
             this.permissionGlobal = getConfig().getString("permission-global");
+            this.permissionGlobalRequired = getConfig().getBoolean("permission-global-required");
+
+            this.permissionReset = getConfig().getString("permission-reset");
+            this.permissionResetRequired = getConfig().getBoolean("permission-reset-required");
 
             this.saveModifiers = getConfig().getBoolean("save-modifiers");
             this.loadModifiers = getConfig().getBoolean("load-modifiers");
@@ -211,7 +243,7 @@ public class Mod extends JavaPlugin implements Listener {
         }
 
         public String loadModifiers(UUID uuid) {
-            return getConfig().getString(String.valueOf(uuid));
+            return Optional.ofNullable(getConfig().getString(String.valueOf(uuid))).orElse("");
         }
 
     }
