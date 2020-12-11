@@ -11,9 +11,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 // TODO: permission based formatter usage ->
@@ -22,6 +22,28 @@ import java.util.stream.Stream;
 // modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
 
 public class LeeesNC extends JavaPlugin implements Listener {
+
+    private static final String DARK = "dark";
+    private static final String LIGHT = "light";
+
+    private static final Map<String, Set<String>> colorPrefix = new HashMap<>() {
+        {
+            put(DARK, new HashSet<>());
+            put(LIGHT, new HashSet<>());
+            Arrays
+                    .stream(ChatColor.values())
+                    .filter(ChatColor::isColor)
+                    .map(ChatColor::asBungee)
+                    .map(net.md_5.bungee.api.ChatColor::getName)
+                    .forEach(name -> {
+                        if (name.startsWith(DARK)) {
+                            get(DARK).add(name.split("_")[1]);
+                        } else if (name.startsWith(LIGHT)) {
+                            get(LIGHT).add(name.split("_")[1]);
+                        }
+                    });
+        }
+    };
 
     private Config config;
     private Map<String, String> modifierLookup;
@@ -65,9 +87,21 @@ public class LeeesNC extends JavaPlugin implements Listener {
             return false;
         }
 
-        String modifiers = Arrays.stream(args)
+        List<String> params = Arrays
+                .stream(args)
                 .map(String::toLowerCase)
                 .map(s -> s.replaceAll("[^a-z]", "_"))
+                .collect(Collectors.toList());
+
+        // convert "dark red" to "dark_red", "light purple" to "light_purple" etc.
+        IntStream.range(0, params.size() - 1).forEach(i -> {
+            if (colorPrefix.getOrDefault(params.get(i).toLowerCase(), new HashSet<>()).contains(params.get(i + 1))) {
+                params.set(i, params.get(i) + '_' + params.get(i + 1));
+                params.set(i + 1, "");
+            }
+        });
+
+        String modifiers = params.stream()
                 .map(s -> modifierLookup.getOrDefault(s, ""))
                 .collect(Collectors.joining());
 
@@ -77,7 +111,9 @@ public class LeeesNC extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+
         // if config.loadModifiers == false, event listeners will not be registered!
+
         String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
         if (modifiers != null && !modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
@@ -123,7 +159,9 @@ public class LeeesNC extends JavaPlugin implements Listener {
                         || c.equals(ChatColor.STRIKETHROUGH) && config.modifierStrikethroughAllow
                         || c.equals(ChatColor.UNDERLINE) && config.modifierUnderlineAllow);
 
-        return Stream.concat(colors, formatters).collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), ChatColor::toString));
+        return Stream
+                .concat(colors, formatters)
+                .collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), ChatColor::toString));
 
     }
 
