@@ -8,18 +8,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-// TODO: permission based formatter usage ->
-// (users can define permissions in config to allow certain formatters for certain permissions)
-// modifier-bold-require-permission: true
-// modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
 
 public class Mod extends JavaPlugin implements Listener {
 
@@ -55,24 +49,18 @@ public class Mod extends JavaPlugin implements Listener {
         modifierLookup = generateModifierLookup();
         helpMessage = generateHelpMessage();
 
-        if (config.loadModifiers) {
-            getServer().getPluginManager().registerEvents(this, this);
-        }
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                helpMessage = generateHelpMessage();
-            }
-        }.runTaskTimer(this, 72000, 72000);
+        getServer().getPluginManager().registerEvents(this, this);
 
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
 
-        // if config.loadModifiers == false, event listeners will not be registered!
-        String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
+        if (!config.loadModifiers) {
+            return;
+        }
+
+        String modifiers = config.loadModifiers(event.getPlayer().getUniqueId());
         if (modifiers != null && !modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
         }
@@ -82,18 +70,13 @@ public class Mod extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(@Nonnull CommandSender sender, Command command, @Nonnull String commandLabel, @Nonnull String[] args) {
 
-        if (!command.getName().equalsIgnoreCase("nc")) {
-            getLogger().info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa!");
-            return false;
-        }
-
         if (!(sender instanceof Player)) {
             return false;
         }
 
         Player player = (Player) sender;
 
-        if (config.permissionRequiredCommand && config.permissionCommand != null && !player.hasPermission(config.permissionCommand)) {
+        if (config.permissionRequiredGlobal && config.permissionGlobal != null && !player.hasPermission(config.permissionGlobal)) {
             player.sendMessage(ChatColor.RED + "You do not have sufficient permissions to use this command!");
             return false;
         }
@@ -134,8 +117,7 @@ public class Mod extends JavaPlugin implements Listener {
         }
 
         if (config.saveModifiers) {
-            this.getConfig().set(String.valueOf(player.getUniqueId()), modifiers);
-            this.saveConfig();
+            config.saveModifiers(player.getUniqueId(), modifiers);
         }
 
         return true;
@@ -176,8 +158,8 @@ public class Mod extends JavaPlugin implements Listener {
 
     class Config {
 
-        final boolean permissionRequiredCommand;
-        final String permissionCommand;
+        final boolean permissionRequiredGlobal;
+        final String permissionGlobal;
         final boolean saveModifiers;
         final boolean loadModifiers;
         final boolean modifierBoldAllow;
@@ -188,29 +170,48 @@ public class Mod extends JavaPlugin implements Listener {
 
         public Config() {
 
-            // defaults
-            getConfig().addDefault("permission-required-command", false);
-            getConfig().addDefault("permission-command", "namecolor.command");
+            // TODO: better names for path, default values and config fields
+            getConfig().addDefault("permission-required-global", false);
+            getConfig().addDefault("permission-global", "namecolor.global");
+
+            // TODO: permission based formatter usage ->
+            // (users can define permissions in config to allow certain formatters for certain permissions)
+            // modifier-bold-require-permission: true
+            // modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
+
             getConfig().addDefault("save-modifiers", true);
             getConfig().addDefault("load-modifiers", true);
+
             getConfig().addDefault("modifier-bold-allow", true);
             getConfig().addDefault("modifier-italic-allow", true);
             getConfig().addDefault("modifier-magic-allow", false);
             getConfig().addDefault("modifier-strikethrough-allow", false);
             getConfig().addDefault("modifier-underline-allow", false);
+
             getConfig().options().copyDefaults(true);
             saveConfig();
 
-            this.permissionRequiredCommand = getConfig().getBoolean("permission-required-command");
-            this.permissionCommand = getConfig().getString("permission-command");
+            this.permissionRequiredGlobal = getConfig().getBoolean("permission-required-global");
+            this.permissionGlobal = getConfig().getString("permission-global");
+
             this.saveModifiers = getConfig().getBoolean("save-modifiers");
             this.loadModifiers = getConfig().getBoolean("load-modifiers");
+
             this.modifierBoldAllow = getConfig().getBoolean("modifier-bold-allow");
             this.modifierItalicAllow = getConfig().getBoolean("modifier-italic-allow");
             this.modifierMagicAllow = getConfig().getBoolean("modifier-magic-allow");
             this.modifierStrikethroughAllow = getConfig().getBoolean("modifier-strikethrough-allow");
             this.modifierUnderlineAllow = getConfig().getBoolean("modifier-underline-allow");
 
+        }
+
+        public void saveModifiers(UUID uuid, String modifiers) {
+            getConfig().set(String.valueOf(uuid), modifiers);
+            saveConfig();
+        }
+
+        public String loadModifiers(UUID uuid) {
+            return getConfig().getString(String.valueOf(uuid));
         }
 
     }
