@@ -2,7 +2,7 @@
   <configuration default="false" name="install-plugin.sh" type="ShConfigurationType">
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="$PROJECT_DIR$/convenience/install-plugin.sh" />
-    <option name="SCRIPT_OPTIONS" value="LeeesNC" />
+    <option name="SCRIPT_OPTIONS" value="NameColor" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
     <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />

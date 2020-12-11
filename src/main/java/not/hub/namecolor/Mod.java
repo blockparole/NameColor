@@ -1,4 +1,4 @@
-package leee.nc;
+package not.hub.namecolor;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -21,12 +21,12 @@ import java.util.stream.Stream;
 // modifier-bold-require-permission: true
 // modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
 
-public class LeeesNC extends JavaPlugin implements Listener {
+public class Mod extends JavaPlugin implements Listener {
 
     private static final String DARK = "dark";
     private static final String LIGHT = "light";
 
-    private static final Map<String, Set<String>> colorPrefix = new HashMap<>() {
+    private static final Map<String, Set<String>> colorPrefix = new HashMap<String, Set<String>>() {
         {
             put(DARK, new HashSet<>());
             put(LIGHT, new HashSet<>());
@@ -68,6 +68,17 @@ public class LeeesNC extends JavaPlugin implements Listener {
 
     }
 
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+
+        // if config.loadModifiers == false, event listeners will not be registered!
+        String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
+        if (modifiers != null && !modifiers.isEmpty()) {
+            changeNameColor(event.getPlayer(), modifiers, false);
+        }
+
+    }
+
     @Override
     public boolean onCommand(@Nonnull CommandSender sender, Command command, @Nonnull String commandLabel, @Nonnull String[] args) {
 
@@ -82,7 +93,7 @@ public class LeeesNC extends JavaPlugin implements Listener {
 
         Player player = (Player) sender;
 
-        if (config.commandNeedsPermission && !player.hasPermission("leee.nc")) {
+        if (config.permissionRequiredCommand && config.permissionCommand != null && !player.hasPermission(config.permissionCommand)) {
             player.sendMessage(ChatColor.RED + "You do not have sufficient permissions to use this command!");
             return false;
         }
@@ -103,20 +114,10 @@ public class LeeesNC extends JavaPlugin implements Listener {
 
         String modifiers = params.stream()
                 .map(s -> modifierLookup.getOrDefault(s, ""))
+                .sorted(String::compareTo)
                 .collect(Collectors.joining());
 
         return changeNameColor(player, modifiers, true);
-
-    }
-
-    @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
-
-        // if config.loadModifiers == false, event listeners will not be registered!
-        String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
-        if (modifiers != null && !modifiers.isEmpty()) {
-            changeNameColor(event.getPlayer(), modifiers, false);
-        }
 
     }
 
@@ -127,11 +128,9 @@ public class LeeesNC extends JavaPlugin implements Listener {
             return false;
         }
 
-        String newName = modifiers + player.getName() + ChatColor.RESET;
-        getLogger().info("Changing displayname of " + player.getName() + " to: " + newName);
-        player.setDisplayName(newName);
+        player.setDisplayName(modifiers + player.getName() + ChatColor.RESET);
         if (notify) {
-            player.sendMessage(ChatColor.GOLD + "Your name is now: " + newName);
+            player.sendMessage(ChatColor.GOLD + "Name change to: " + ChatColor.RESET + player.getDisplayName());
         }
 
         if (config.saveModifiers) {
@@ -177,7 +176,8 @@ public class LeeesNC extends JavaPlugin implements Listener {
 
     class Config {
 
-        final boolean commandNeedsPermission;
+        final boolean permissionRequiredCommand;
+        final String permissionCommand;
         final boolean saveModifiers;
         final boolean loadModifiers;
         final boolean modifierBoldAllow;
@@ -189,7 +189,8 @@ public class LeeesNC extends JavaPlugin implements Listener {
         public Config() {
 
             // defaults
-            getConfig().addDefault("command-needs-permission", false);
+            getConfig().addDefault("permission-required-command", false);
+            getConfig().addDefault("permission-command", "namecolor.command");
             getConfig().addDefault("save-modifiers", true);
             getConfig().addDefault("load-modifiers", true);
             getConfig().addDefault("modifier-bold-allow", true);
@@ -200,7 +201,8 @@ public class LeeesNC extends JavaPlugin implements Listener {
             getConfig().options().copyDefaults(true);
             saveConfig();
 
-            this.commandNeedsPermission = getConfig().getBoolean("command-needs-permission");
+            this.permissionRequiredCommand = getConfig().getBoolean("permission-required-command");
+            this.permissionCommand = getConfig().getString("permission-command");
             this.saveModifiers = getConfig().getBoolean("save-modifiers");
             this.loadModifiers = getConfig().getBoolean("load-modifiers");
             this.modifierBoldAllow = getConfig().getBoolean("modifier-bold-allow");

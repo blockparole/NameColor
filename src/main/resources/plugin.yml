@@ -1,8 +1,8 @@
 name: ${project.artifactId}
 version: ${project.version}
-description: Plugin that changes Players name color on their command.
-author: [ Nate Legault, blockparole ]
-main: leee.nc.LeeesNC
+description: Provides a name color self service command.
+author: [ blockparole, Nate Legault ]
+main: not.hub.namecolor.Mod
 
 commands:
   nc:
