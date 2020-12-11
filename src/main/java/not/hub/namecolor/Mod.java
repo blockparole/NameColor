@@ -174,7 +174,7 @@ public class Mod extends JavaPlugin implements Listener {
                 .entrySet()
                 .stream()
                 .map(entry -> entry.getValue() + entry.getKey() + ChatColor.RESET)
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet())) + " reset";
 
     }
 

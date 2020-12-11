@@ -6,7 +6,7 @@
 
     <groupId>not.hub</groupId>
     <artifactId>NameColor</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
 
     <name>${project.artifactId}</name>
     <packaging>jar</packaging>
