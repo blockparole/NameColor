@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
@@ -15,33 +16,33 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+// TODO: permission based formatter usage ->
+// (users can define permissions in config to allow certain formatters for certain permissions)
+// modifier-bold-require-permission: true
+// modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
+
 public class LeeesNC extends JavaPlugin implements Listener {
 
     private Config config;
-    private Map<String, ChatColor> formatterLookup;
+    private Map<String, String> modifierLookup;
+    private String helpMessage;
 
     public void onEnable() {
+
         config = new Config();
-        formatterLookup = generateFormatterLookup();
-        getServer().getPluginManager().registerEvents(this, this);
-    }
+        modifierLookup = generateModifierLookup();
+        helpMessage = generateHelpMessage();
 
-    private Map<String, ChatColor> generateFormatterLookup() {
+        if (config.loadModifiers) {
+            getServer().getPluginManager().registerEvents(this, this);
+        }
 
-        Stream<ChatColor> colors = Arrays
-                .stream(ChatColor.values())
-                .filter(ChatColor::isColor);
-
-        Stream<ChatColor> formatters = Arrays
-                .stream(ChatColor.values())
-                .filter(ChatColor::isFormat)
-                .filter(c -> c.equals(ChatColor.BOLD) && config.modifierAllowedBold
-                        || c.equals(ChatColor.ITALIC) && config.modifierAllowedItalic
-                        || c.equals(ChatColor.MAGIC) && config.modifierAllowedMagic
-                        || c.equals(ChatColor.STRIKETHROUGH) && config.modifierAllowedStrikethrough
-                        || c.equals(ChatColor.UNDERLINE) && config.modifierAllowedUnderline);
-
-        return Stream.concat(colors, formatters).collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), e -> e));
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                helpMessage = generateHelpMessage();
+            }
+        }.runTaskTimer(this, 72000, 72000);
 
     }
 
@@ -49,6 +50,7 @@ public class LeeesNC extends JavaPlugin implements Listener {
     public boolean onCommand(@Nonnull CommandSender sender, Command command, @Nonnull String commandLabel, @Nonnull String[] args) {
 
         if (!command.getName().equalsIgnoreCase("nc")) {
+            getLogger().info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa!");
             return false;
         }
 
@@ -59,27 +61,23 @@ public class LeeesNC extends JavaPlugin implements Listener {
         Player player = (Player) sender;
 
         if (config.commandNeedsPermission && !player.hasPermission("leee.nc")) {
-            player.sendMessage(ChatColor.RED + "You do not have permission to perform this command!");
+            player.sendMessage(ChatColor.RED + "You do not have sufficient permissions to use this command!");
             return false;
         }
 
-        if (args.length == 0) {
-            // TODO: player.sendMessage(helpMessage);
-            return false;
-        }
-
-        String formatters = Arrays.stream(args).map(s -> s.replaceAll("[^a-zA-Z]", "_").toLowerCase())
-                .filter(s -> formatterLookup.containsKey(s))
-                .map(s -> formatterLookup.get(s).toString())
+        String modifiers = Arrays.stream(args)
+                .map(String::toLowerCase)
+                .map(s -> s.replaceAll("[^a-z]", "_"))
+                .map(s -> modifierLookup.getOrDefault(s, ""))
                 .collect(Collectors.joining());
 
-        return changeNameColor(player, formatters, true);
+        return changeNameColor(player, modifiers, true);
 
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-
+        // if config.loadModifiers == false, event listeners will not be registered!
         String modifiers = this.getConfig().getString(String.valueOf(event.getPlayer().getUniqueId()));
         if (modifiers != null && !modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
@@ -90,52 +88,83 @@ public class LeeesNC extends JavaPlugin implements Listener {
     private boolean changeNameColor(Player player, String modifiers, boolean notify) {
 
         if (modifiers.isEmpty()) {
+            player.sendMessage(ChatColor.RED + helpMessage);
             return false;
         }
 
         String newName = modifiers + player.getName() + ChatColor.RESET;
-        getLogger().info("Changing name of " + player.getName() + " to: " + newName);
+        getLogger().info("Changing displayname of " + player.getName() + " to: " + newName);
         player.setDisplayName(newName);
-        this.getConfig().set(String.valueOf(player.getUniqueId()), modifiers);
-        this.saveConfig();
-
         if (notify) {
             player.sendMessage(ChatColor.GOLD + "Your name is now: " + newName);
+        }
+
+        if (config.saveModifiers) {
+            this.getConfig().set(String.valueOf(player.getUniqueId()), modifiers);
+            this.saveConfig();
         }
 
         return true;
 
     }
 
+    private Map<String, String> generateModifierLookup() {
+
+        Stream<ChatColor> colors = Arrays
+                .stream(ChatColor.values())
+                .filter(ChatColor::isColor);
+
+        Stream<ChatColor> formatters = Arrays
+                .stream(ChatColor.values())
+                .filter(ChatColor::isFormat)
+                .filter(c -> c.equals(ChatColor.BOLD) && config.modifierBoldAllow
+                        || c.equals(ChatColor.ITALIC) && config.modifierItalicAllow
+                        || c.equals(ChatColor.MAGIC) && config.modifierMagicAllow
+                        || c.equals(ChatColor.STRIKETHROUGH) && config.modifierStrikethroughAllow
+                        || c.equals(ChatColor.UNDERLINE) && config.modifierUnderlineAllow);
+
+        return Stream.concat(colors, formatters).collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), ChatColor::toString));
+
+    }
+
+    private String generateHelpMessage() {
+        // TODO
+        return "HELP MESSAGE";
+    }
+
     class Config {
 
         final boolean commandNeedsPermission;
-        final boolean modifierAllowedBold;
-        final boolean modifierAllowedItalic;
-        final boolean modifierAllowedMagic;
-        final boolean modifierAllowedStrikethrough;
-        final boolean modifierAllowedUnderline;
+        final boolean saveModifiers;
+        final boolean loadModifiers;
+        final boolean modifierBoldAllow;
+        final boolean modifierItalicAllow;
+        final boolean modifierMagicAllow;
+        final boolean modifierStrikethroughAllow;
+        final boolean modifierUnderlineAllow;
 
         public Config() {
 
             // defaults
             getConfig().addDefault("command-needs-permission", false);
-            getConfig().addDefault("modifier-allowed-bold", true);
-            getConfig().addDefault("modifier-allowed-strikethrough", false);
-            getConfig().addDefault("modifier-allowed-underline", false);
-            getConfig().addDefault("modifier-allowed-italic", true);
-            getConfig().addDefault("modifier-allowed-magic", false);
+            getConfig().addDefault("save-modifiers", true);
+            getConfig().addDefault("load-modifiers", true);
+            getConfig().addDefault("modifier-bold-allow", true);
+            getConfig().addDefault("modifier-italic-allow", true);
+            getConfig().addDefault("modifier-magic-allow", false);
+            getConfig().addDefault("modifier-strikethrough-allow", false);
+            getConfig().addDefault("modifier-underline-allow", false);
             getConfig().options().copyDefaults(true);
             saveConfig();
 
             this.commandNeedsPermission = getConfig().getBoolean("command-needs-permission");
-
-            // TODO: permission based formatter usage
-            this.modifierAllowedBold = getConfig().getBoolean("modifier-allowed-bold");
-            this.modifierAllowedItalic = getConfig().getBoolean("modifier-allowed-italic");
-            this.modifierAllowedMagic = getConfig().getBoolean("modifier-allowed-magic");
-            this.modifierAllowedStrikethrough = getConfig().getBoolean("modifier-allowed-strikethrough");
-            this.modifierAllowedUnderline = getConfig().getBoolean("modifier-allowed-underline");
+            this.saveModifiers = getConfig().getBoolean("save-modifiers");
+            this.loadModifiers = getConfig().getBoolean("load-modifiers");
+            this.modifierBoldAllow = getConfig().getBoolean("modifier-bold-allow");
+            this.modifierItalicAllow = getConfig().getBoolean("modifier-italic-allow");
+            this.modifierMagicAllow = getConfig().getBoolean("modifier-magic-allow");
+            this.modifierStrikethroughAllow = getConfig().getBoolean("modifier-strikethrough-allow");
+            this.modifierUnderlineAllow = getConfig().getBoolean("modifier-underline-allow");
 
         }
 
