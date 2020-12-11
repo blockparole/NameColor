@@ -11,7 +11,7 @@
 ###### Usage
  - `/nc <modifiers>`
  - `/nc dark red italic`
- - `/nc black bold underline`
+ - `/nc aqua bold underline`
  - `/nc light_purple magic bold`
  - `/nc reset`
 
