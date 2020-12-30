@@ -1,7 +1,7 @@
 # NameColor
-[![Download](https://img.shields.io/github/downloads/blockparole/LeeesNC/latest/total.svg?label=download%20latest&style=popout-square)](https://github.com/blockparole/LeeesNC/releases/latest)
-[![RepoSize](https://img.shields.io/github/languages/code-size/blockparole/LeeesNC.svg?label=repo%20size&style=popout-square)](https://github.com/blockparole/LeeesNC)
-[![HitCount](http://hits.dwyl.com/blockparole/LeeesNC.svg)](https://github.com/blockparole/LeeesNC)
+[![Download](https://img.shields.io/github/downloads/blockparole/NameColor/latest/total.svg?label=download%20latest&style=popout-square)](https://github.com/blockparole/NameColor/releases/latest)
+[![RepoSize](https://img.shields.io/github/languages/code-size/blockparole/NameColor.svg?label=repo%20size&style=popout-square)](https://github.com/blockparole/NameColor)
+[![HitCount](http://hits.dwyl.com/blockparole/NameColor.svg)](https://github.com/blockparole/NameColor)
 
 ##### Provides a name color self service command.
 
