@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -43,7 +44,7 @@ public class Mod extends JavaPlugin implements Listener {
     };
 
     private Config config;
-    private Map<String, String> modifierLookup;
+    private Map<String, ChatColor> modifierLookup;
     private String helpMessage;
 
     public void onEnable() {
@@ -104,8 +105,17 @@ public class Mod extends JavaPlugin implements Listener {
             }
         });
 
+        final Predicate<ChatColor> isForbidden = c -> c.equals(ChatColor.BOLD) && !config.modifierBoldAllow
+                || c.equals(ChatColor.ITALIC) && !config.modifierItalicAllow
+                || c.equals(ChatColor.MAGIC) && !config.modifierMagicAllow
+                || c.equals(ChatColor.STRIKETHROUGH) && !config.modifierStrikethroughAllow
+                || c.equals(ChatColor.UNDERLINE) && !config.modifierUnderlineAllow;
+
         String modifiers = params.stream()
-                .map(s -> modifierLookup.getOrDefault(s, ""))
+                .map(s -> modifierLookup.getOrDefault(s, null))
+                .filter(Objects::nonNull)
+                .filter(isForbidden.negate())
+                .map(ChatColor::toString)
                 .sorted(String::compareTo)
                 .collect(Collectors.joining());
 
@@ -146,7 +156,7 @@ public class Mod extends JavaPlugin implements Listener {
 
     }
 
-    private Map<String, String> generateModifierLookup() {
+    private Map<String, ChatColor> generateModifierLookup() {
 
         Stream<ChatColor> colors = Arrays
                 .stream(ChatColor.values())
@@ -154,16 +164,11 @@ public class Mod extends JavaPlugin implements Listener {
 
         Stream<ChatColor> formatters = Arrays
                 .stream(ChatColor.values())
-                .filter(ChatColor::isFormat)
-                .filter(c -> c.equals(ChatColor.BOLD) && config.modifierBoldAllow
-                        || c.equals(ChatColor.ITALIC) && config.modifierItalicAllow
-                        || c.equals(ChatColor.MAGIC) && config.modifierMagicAllow
-                        || c.equals(ChatColor.STRIKETHROUGH) && config.modifierStrikethroughAllow
-                        || c.equals(ChatColor.UNDERLINE) && config.modifierUnderlineAllow);
+                .filter(ChatColor::isFormat);
 
         return Stream
                 .concat(colors, formatters)
-                .collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), ChatColor::toString));
+                .collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), e -> e));
 
     }
 
