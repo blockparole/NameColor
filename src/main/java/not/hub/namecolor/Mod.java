@@ -11,7 +11,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -48,13 +47,18 @@ public class Mod extends JavaPlugin implements Listener {
     private String helpMessage;
 
     public void onEnable() {
-
         config = new Config();
         modifierLookup = generateModifierLookup();
         helpMessage = generateHelpMessage();
-
         getServer().getPluginManager().registerEvents(this, this);
+    }
 
+    private boolean isAllowed(ChatColor c) {
+        return (!c.equals(ChatColor.BOLD) || config.modifierBoldAllow)
+                && (!c.equals(ChatColor.ITALIC) || config.modifierItalicAllow)
+                && (!c.equals(ChatColor.MAGIC) || config.modifierMagicAllow)
+                && (!c.equals(ChatColor.STRIKETHROUGH) || config.modifierStrikethroughAllow)
+                && (!c.equals(ChatColor.UNDERLINE) || config.modifierUnderlineAllow);
     }
 
     @EventHandler
@@ -93,7 +97,7 @@ public class Mod extends JavaPlugin implements Listener {
                 .collect(Collectors.toList());
 
         if (params.contains(RESET) && (!config.permissionResetRequired || player.hasPermission(config.permissionReset))) {
-            resetNameColor(player, true);
+            resetNameColor(player);
             return true;
         }
 
@@ -105,16 +109,10 @@ public class Mod extends JavaPlugin implements Listener {
             }
         });
 
-        final Predicate<ChatColor> isForbidden = c -> c.equals(ChatColor.BOLD) && !config.modifierBoldAllow
-                || c.equals(ChatColor.ITALIC) && !config.modifierItalicAllow
-                || c.equals(ChatColor.MAGIC) && !config.modifierMagicAllow
-                || c.equals(ChatColor.STRIKETHROUGH) && !config.modifierStrikethroughAllow
-                || c.equals(ChatColor.UNDERLINE) && !config.modifierUnderlineAllow;
-
         String modifiers = params.stream()
                 .map(s -> modifierLookup.getOrDefault(s, null))
                 .filter(Objects::nonNull)
-                .filter(isForbidden.negate())
+                .filter(this::isAllowed)
                 .map(ChatColor::toString)
                 .sorted(String::compareTo)
                 .collect(Collectors.joining());
@@ -124,63 +122,47 @@ public class Mod extends JavaPlugin implements Listener {
     }
 
     private boolean changeNameColor(Player player, String modifiers, boolean notify) {
-
         if (modifiers.isEmpty()) {
             player.sendMessage(helpMessage);
             return false;
         }
-
         player.setDisplayName(modifiers + player.getName() + ChatColor.RESET);
         if (notify) {
             player.sendMessage(ChatColor.GOLD + "Name changed to: " + ChatColor.RESET + player.getDisplayName());
         }
-
         if (config.saveModifiers) {
             config.saveModifiers(player.getUniqueId(), modifiers);
         }
-
         return true;
-
     }
 
-    private void resetNameColor(Player player, boolean notify) {
-
+    private void resetNameColor(Player player) {
         player.setDisplayName(player.getName());
-        if (notify) {
-            player.sendMessage(ChatColor.GOLD + "Name reset to default: " + ChatColor.RESET + player.getDisplayName());
-        }
-
+        player.sendMessage(ChatColor.GOLD + "Name reset to default: " + ChatColor.RESET + player.getDisplayName());
         if (config.saveModifiers) {
             config.saveModifiers(player.getUniqueId(), null);
         }
-
     }
 
     private Map<String, ChatColor> generateModifierLookup() {
-
-        Stream<ChatColor> colors = Arrays
-                .stream(ChatColor.values())
-                .filter(ChatColor::isColor);
-
-        Stream<ChatColor> formatters = Arrays
-                .stream(ChatColor.values())
-                .filter(ChatColor::isFormat);
-
         return Stream
-                .concat(colors, formatters)
+                .concat(Arrays
+                                .stream(ChatColor.values())
+                                .filter(ChatColor::isColor),
+                        Arrays
+                                .stream(ChatColor.values())
+                                .filter(ChatColor::isFormat))
                 .collect(Collectors.toMap(e -> e.asBungee().getName().toLowerCase(), e -> e));
-
     }
 
     private String generateHelpMessage() {
-
         return ChatColor.GOLD + "Please specify at least one valid modifier: "
                 + String.join(" ", modifierLookup
                 .entrySet()
                 .stream()
+                .filter(c -> isAllowed(c.getValue()))
                 .map(entry -> entry.getValue() + entry.getKey() + ChatColor.RESET)
                 .collect(Collectors.toSet())) + " reset";
-
     }
 
     class Config {
