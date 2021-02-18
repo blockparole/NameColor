@@ -42,33 +42,63 @@ public class Mod extends JavaPlugin implements Listener {
         }
     };
 
-    private Config config;
     private Map<String, ChatColor> modifierLookup;
     private String helpMessage;
 
     public void onEnable() {
-        config = new Config();
+
+        config();
+
         modifierLookup = generateModifierLookup();
         helpMessage = generateHelpMessage();
+
         getServer().getPluginManager().registerEvents(this, this);
+
+    }
+
+    private void config() {
+
+        getConfig().addDefault("permission-global", "namecolor.global");
+        getConfig().addDefault("permission-global-required", false);
+
+        getConfig().addDefault("permission-reset", "namecolor.reset");
+        getConfig().addDefault("permission-reset-required", false);
+
+        // TODO?: permission based formatter usage ->
+        // (users can define permissions in config to allow certain formatters for certain permissions)
+        // modifier-bold-require-permission: true
+        // modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
+
+        getConfig().addDefault("save-modifiers", true);
+        getConfig().addDefault("load-modifiers", true);
+
+        getConfig().addDefault("modifier-bold-allow", true);
+        getConfig().addDefault("modifier-italic-allow", true);
+        getConfig().addDefault("modifier-magic-allow", false);
+        getConfig().addDefault("modifier-strikethrough-allow", false);
+        getConfig().addDefault("modifier-underline-allow", false);
+
+        getConfig().options().copyDefaults(true);
+        saveConfig();
+
     }
 
     private boolean isAllowed(ChatColor c) {
-        return (!c.equals(ChatColor.BOLD) || config.modifierBoldAllow)
-                && (!c.equals(ChatColor.ITALIC) || config.modifierItalicAllow)
-                && (!c.equals(ChatColor.MAGIC) || config.modifierMagicAllow)
-                && (!c.equals(ChatColor.STRIKETHROUGH) || config.modifierStrikethroughAllow)
-                && (!c.equals(ChatColor.UNDERLINE) || config.modifierUnderlineAllow);
+        return (!c.equals(ChatColor.BOLD) || getConfig().getBoolean("modifier-bold-allow"))
+                && (!c.equals(ChatColor.ITALIC) || getConfig().getBoolean("modifier-italic-allow"))
+                && (!c.equals(ChatColor.MAGIC) || getConfig().getBoolean("modifier-magic-allow"))
+                && (!c.equals(ChatColor.STRIKETHROUGH) || getConfig().getBoolean("modifier-strikethrough-allow"))
+                && (!c.equals(ChatColor.UNDERLINE) || getConfig().getBoolean("modifier-underline-allow"));
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
 
-        if (!config.loadModifiers) {
+        if (!getConfig().getBoolean("load-modifiers")) {
             return;
         }
 
-        String modifiers = config.loadModifiers(event.getPlayer().getUniqueId());
+        String modifiers = loadModifiers(event.getPlayer().getUniqueId());
         if (!modifiers.isEmpty()) {
             changeNameColor(event.getPlayer(), modifiers, false);
         }
@@ -84,7 +114,7 @@ public class Mod extends JavaPlugin implements Listener {
 
         Player player = (Player) sender;
 
-        if (config.permissionGlobalRequired && !player.hasPermission(config.permissionGlobal)) {
+        if (getConfig().getBoolean("permission-global-required") && !player.hasPermission(getConfig().getString("permission-global"))) {
             player.sendMessage(ChatColor.RED + "You do not have sufficient permissions to use this command!");
             return false;
         }
@@ -96,7 +126,7 @@ public class Mod extends JavaPlugin implements Listener {
                 .map(s -> s.replaceAll(MAGIC, OBFUSCATED))
                 .collect(Collectors.toList());
 
-        if (params.contains(RESET) && (!config.permissionResetRequired || player.hasPermission(config.permissionReset))) {
+        if (params.contains(RESET) && (!getConfig().getBoolean("permission-reset-required") || player.hasPermission(getConfig().getString("permission-reset")))) {
             resetNameColor(player);
             return true;
         }
@@ -130,8 +160,8 @@ public class Mod extends JavaPlugin implements Listener {
         if (notify) {
             player.sendMessage(ChatColor.GOLD + "Name changed to: " + ChatColor.RESET + player.getDisplayName());
         }
-        if (config.saveModifiers) {
-            config.saveModifiers(player.getUniqueId(), modifiers);
+        if (getConfig().getBoolean("save-modifiers")) {
+            saveModifiers(player.getUniqueId(), modifiers);
         }
         return true;
     }
@@ -139,8 +169,8 @@ public class Mod extends JavaPlugin implements Listener {
     private void resetNameColor(Player player) {
         player.setDisplayName(player.getName());
         player.sendMessage(ChatColor.GOLD + "Name reset to default: " + ChatColor.RESET + player.getDisplayName());
-        if (config.saveModifiers) {
-            config.saveModifiers(player.getUniqueId(), null);
+        if (getConfig().getBoolean("save-modifiers")) {
+            saveModifiers(player.getUniqueId(), null);
         }
     }
 
@@ -165,74 +195,13 @@ public class Mod extends JavaPlugin implements Listener {
                 .collect(Collectors.toSet())) + " reset";
     }
 
-    class Config {
+    public void saveModifiers(UUID uuid, String modifiers) {
+        getConfig().set(String.valueOf(uuid), modifiers);
+        saveConfig();
+    }
 
-        final String permissionGlobal;
-        final boolean permissionGlobalRequired;
-        final String permissionReset;
-        final boolean permissionResetRequired;
-
-        final boolean saveModifiers;
-        final boolean loadModifiers;
-
-        final boolean modifierBoldAllow;
-        final boolean modifierItalicAllow;
-        final boolean modifierMagicAllow;
-        final boolean modifierStrikethroughAllow;
-        final boolean modifierUnderlineAllow;
-
-        public Config() {
-
-            // TODO: better names for path, default values and config fields
-            getConfig().addDefault("permission-global", "namecolor.global");
-            getConfig().addDefault("permission-global-required", false);
-
-            getConfig().addDefault("permission-reset", "namecolor.reset");
-            getConfig().addDefault("permission-reset-required", false);
-
-            // TODO: permission based formatter usage ->
-            // (users can define permissions in config to allow certain formatters for certain permissions)
-            // modifier-bold-require-permission: true
-            // modifier-bold-permissions: foo.bar.bold, foo.bar.rab.oof, bar.foo
-
-            getConfig().addDefault("save-modifiers", true);
-            getConfig().addDefault("load-modifiers", true);
-
-            getConfig().addDefault("modifier-bold-allow", true);
-            getConfig().addDefault("modifier-italic-allow", true);
-            getConfig().addDefault("modifier-magic-allow", false);
-            getConfig().addDefault("modifier-strikethrough-allow", false);
-            getConfig().addDefault("modifier-underline-allow", false);
-
-            getConfig().options().copyDefaults(true);
-            saveConfig();
-
-            this.permissionGlobal = getConfig().getString("permission-global");
-            this.permissionGlobalRequired = getConfig().getBoolean("permission-global-required");
-
-            this.permissionReset = getConfig().getString("permission-reset");
-            this.permissionResetRequired = getConfig().getBoolean("permission-reset-required");
-
-            this.saveModifiers = getConfig().getBoolean("save-modifiers");
-            this.loadModifiers = getConfig().getBoolean("load-modifiers");
-
-            this.modifierBoldAllow = getConfig().getBoolean("modifier-bold-allow");
-            this.modifierItalicAllow = getConfig().getBoolean("modifier-italic-allow");
-            this.modifierMagicAllow = getConfig().getBoolean("modifier-magic-allow");
-            this.modifierStrikethroughAllow = getConfig().getBoolean("modifier-strikethrough-allow");
-            this.modifierUnderlineAllow = getConfig().getBoolean("modifier-underline-allow");
-
-        }
-
-        public void saveModifiers(UUID uuid, String modifiers) {
-            getConfig().set(String.valueOf(uuid), modifiers);
-            saveConfig();
-        }
-
-        public String loadModifiers(UUID uuid) {
-            return Optional.ofNullable(getConfig().getString(String.valueOf(uuid))).orElse("");
-        }
-
+    public String loadModifiers(UUID uuid) {
+        return Optional.ofNullable(getConfig().getString(String.valueOf(uuid))).orElse("");
     }
 
 }
