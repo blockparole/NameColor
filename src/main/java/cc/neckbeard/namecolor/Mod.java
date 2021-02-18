@@ -1,4 +1,4 @@
-package not.hub.namecolor;
+package cc.neckbeard.namecolor;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;

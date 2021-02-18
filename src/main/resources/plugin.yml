@@ -1,10 +1,10 @@
 name: ${project.artifactId}
 version: ${project.version}
 description: Provides a name color self service command.
-author: [ blockparole, Nate Legault ]
-main: not.hub.namecolor.Mod
+author: [ blockparole ]
+main: cc.neckbeard.namecolor.Mod
 
 commands:
   nc:
     description: Change your name color.
-    aliases: [ namecolor, namecolour ]
+    aliases: [ namecolor ]

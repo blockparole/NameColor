@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>not.hub</groupId>
+    <groupId>cc.neckbeard</groupId>
     <artifactId>NameColor</artifactId>
-    <version>0.2</version>
+    <version>1.0</version>
 
     <name>${project.artifactId}</name>
     <packaging>jar</packaging>
@@ -39,8 +39,8 @@
 
     <repositories>
         <repository>
-            <id>papermc</id>
-            <url>https://papermc.io/repo/repository/maven-public/</url>
+            <id>neckbeard</id>
+            <url>https://maven.neckbeard.cc/</url>
         </repository>
     </repositories>
 
